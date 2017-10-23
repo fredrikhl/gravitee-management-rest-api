@@ -15,6 +15,7 @@
  */
 package io.gravitee.management.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.PropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
@@ -210,6 +211,8 @@ public class ApiService_ExportAsJsonTest {
         String expectedJson = Resources.toString(url, Charsets.UTF_8);
 
         assertThat(jsonForExport).isNotNull();
-        assertThat(jsonForExport).isEqualTo(expectedJson);
+        JsonNode jsonNode = objectMapper.readTree(jsonForExport);
+        JsonNode expectedJsonNode = objectMapper.readTree(expectedJson);
+        assertThat(jsonNode).isEqualTo(expectedJsonNode);
     }
 }
