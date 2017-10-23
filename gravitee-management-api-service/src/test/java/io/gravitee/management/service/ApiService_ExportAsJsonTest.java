@@ -178,7 +178,7 @@ public class ApiService_ExportAsJsonTest {
         String expectedJson = Resources.toString(url, Charsets.UTF_8);
 
         assertThat(jsonForExport).isNotNull();
-        assertThat(jsonForExport).isEqualTo(expectedJson);
+        assertThat(objectMapper.readTree(jsonForExport)).isEqualTo(objectMapper.readTree(expectedJson));
     }
 
     @Test
@@ -189,7 +189,7 @@ public class ApiService_ExportAsJsonTest {
         String expectedJson = Resources.toString(url, Charsets.UTF_8);
 
         assertThat(jsonForExport).isNotNull();
-        assertThat(jsonForExport).isEqualTo(expectedJson);
+        assertThat(objectMapper.readTree(jsonForExport)).isEqualTo(objectMapper.readTree(expectedJson));
     }
 
     @Test
@@ -200,7 +200,7 @@ public class ApiService_ExportAsJsonTest {
         String expectedJson = Resources.toString(url, Charsets.UTF_8);
 
         assertThat(jsonForExport).isNotNull();
-        assertThat(jsonForExport).isEqualTo(expectedJson);
+        assertThat(objectMapper.readTree(jsonForExport)).isEqualTo(objectMapper.readTree(expectedJson));
     }
 
     @Test
@@ -211,8 +211,6 @@ public class ApiService_ExportAsJsonTest {
         String expectedJson = Resources.toString(url, Charsets.UTF_8);
 
         assertThat(jsonForExport).isNotNull();
-        JsonNode jsonNode = objectMapper.readTree(jsonForExport);
-        JsonNode expectedJsonNode = objectMapper.readTree(expectedJson);
-        assertThat(jsonNode).isEqualTo(expectedJsonNode);
+        assertThat(objectMapper.readTree(jsonForExport)).isEqualTo(objectMapper.readTree(expectedJson));
     }
 }
