@@ -15,13 +15,11 @@
  */
 package io.gravitee.management.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonpatch.diff.JsonDiff;
 import io.gravitee.common.utils.UUID;
 import io.gravitee.management.service.AuditService;
-import io.gravitee.management.service.common.AuthenticatedUser;
 import io.gravitee.repository.exceptions.TechnicalException;
 import io.gravitee.repository.management.api.AuditRepository;
 import io.gravitee.repository.management.model.Audit;
@@ -36,11 +34,11 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * @author Azize ELAMRANI (azize at graviteesource.com)
+ * @author Nicolas GERAUD (nicolas.geraud at graviteesource.com)
  * @author GraviteeSource Team
  */
 @Component
-public class AuditServiceImpl extends TransactionalService implements AuditService {
+public class AuditServiceImpl extends AbstractService implements AuditService {
 
     private final Logger LOGGER = LoggerFactory.getLogger(AuditServiceImpl.class);
 
@@ -50,8 +48,16 @@ public class AuditServiceImpl extends TransactionalService implements AuditServi
     @Autowired
     private ObjectMapper mapper;
 
-    public void createApiLog(String apiId, Map properties, Audit.AuditEvent event, Date createdAt, Object oldValue, Object newValue) {
-        create(Audit.AuditReferenceType.API, apiId, properties, event, AuthenticatedUser.getCurrentUser(), createdAt, oldValue, newValue);
+    public void createApiAuditLog(String apiId, Map properties, Audit.AuditEvent event, Date createdAt,
+                                  Object oldValue, Object newValue) {
+        create(Audit.AuditReferenceType.API,
+                apiId,
+                properties,
+                event,
+                getAuthenticatedUsername(),
+                createdAt==null ? new Date() : createdAt,
+                oldValue,
+                newValue);
     }
 
 
@@ -59,15 +65,15 @@ public class AuditServiceImpl extends TransactionalService implements AuditServi
     protected void create(Audit.AuditReferenceType referenceType, String referenceId, Map properties,
                           Audit.AuditEvent event, String username, Date createdAt,
                           Object oldValue, Object newValue) {
-        Audit audit = new Audit();
 
+        Audit audit = new Audit();
         audit.setId(UUID.toString(UUID.random()));
         audit.setUsername(username);
         audit.setCreatedAt(createdAt);
         audit.setProperties(properties);
         audit.setReferenceType(referenceType);
         audit.setReferenceId(referenceId);
-        audit.setEvent(event);
+        audit.setEvent(event.name());
 
         ObjectNode oldNode = oldValue == null
                 ? mapper.createObjectNode()
@@ -78,10 +84,10 @@ public class AuditServiceImpl extends TransactionalService implements AuditServi
 
         audit.setPatch(JsonDiff.asJson(oldNode, newNode).toString());
 
-//        try {
-//            auditRepository.create(audit);
-//        } catch (TechnicalException e) {
-//            LOGGER.error("Error occurs during the creation of an Audit Log {}.", e);
-//        }
+        try {
+            auditRepository.create(audit);
+        } catch (TechnicalException e) {
+            LOGGER.error("Error occurs during the creation of an Audit Log {}.", e);
+        }
     }
 }

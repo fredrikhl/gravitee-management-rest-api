@@ -139,7 +139,7 @@ public class PlanServiceImpl extends TransactionalService implements PlanService
 
             plan = planRepository.create(plan);
 
-            auditService.createApiLog(newPlan.getApi(), Collections.singletonMap(PLAN, plan.getId()), PLAN_CREATED, plan.getCreatedAt(), null, plan);
+            auditService.createApiAuditLog(newPlan.getApi(), Collections.singletonMap(PLAN, plan.getId()), PLAN_CREATED, plan.getCreatedAt(), null, plan);
             return convert(plan);
         } catch (TechnicalException ex) {
             logger.error("An error occurs while trying to create a plan {} for API {}", newPlan.getName(), newPlan.getApi(), ex);
@@ -201,7 +201,7 @@ public class PlanServiceImpl extends TransactionalService implements PlanService
                 return null;
             } else {
                 newPlan = planRepository.update(newPlan);
-                auditService.createApiLog(
+                auditService.createApiAuditLog(
                         newPlan.getApis().iterator().next(),
                         Collections.singletonMap(PLAN, newPlan.getId()),
                         PLAN_UPDATED,

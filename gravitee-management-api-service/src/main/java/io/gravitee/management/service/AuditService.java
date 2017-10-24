@@ -26,5 +26,5 @@ import java.util.Map;
  */
 public interface AuditService {
 
-    void createApiLog(String apiId, Map properties, Audit.AuditEvent event, Date createdAt, Object oldValue, Object newValue);
+    void createApiAuditLog(String apiId, Map properties, Audit.AuditEvent event, Date createdAt, Object oldValue, Object newValue);
 }

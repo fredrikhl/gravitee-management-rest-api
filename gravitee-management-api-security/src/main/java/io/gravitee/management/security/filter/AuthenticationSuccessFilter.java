@@ -21,7 +21,6 @@ import io.gravitee.management.idp.api.authentication.UserDetails;
 import io.gravitee.management.model.RoleEntity;
 import io.gravitee.management.security.cookies.JWTCookieGenerator;
 import io.gravitee.management.service.MembershipService;
-import io.gravitee.management.service.common.AuthenticatedUser;
 import io.gravitee.management.service.common.JWTHelper.Claims;
 import io.gravitee.repository.management.model.MembershipDefaultReferenceId;
 import io.gravitee.repository.management.model.MembershipReferenceType;
@@ -88,9 +87,6 @@ public class AuthenticationSuccessFilter extends GenericFilterBean {
             claims.put(Claims.ISSUER, jwtIssuer);
 
             final UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-            // Store current user to audit log
-            AuthenticatedUser.setCurrentUser(userDetails.getUsername());
 
             // Manage authorities, initialize it with dynamic permissions from the IDP
             Set<GrantedAuthority> authorities = new HashSet<>(userDetails.getAuthorities());
