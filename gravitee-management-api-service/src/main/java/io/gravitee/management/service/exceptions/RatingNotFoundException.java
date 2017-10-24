@@ -13,36 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.management.model.permissions;
+package io.gravitee.management.service.exceptions;
 
 /**
- * @author Nicolas GERAUD (nicolas.geraud at graviteesource.com) 
+ * @author Azize ELAMRANI (azize at graviteesource.com)
  * @author GraviteeSource Team
  */
-public enum PortalPermission implements Permission {
-    METADATA(     "METADATA",      1000),
-    DOCUMENTATION("DOCUMENTATION", 1100),
-    APPLICATION(  "APPLICATION",   1200),
-    VIEW(         "VIEW",          1300),
-    RATING(       "RATING",        1400),
-    RATING_ANSWER("RATING_ANSWER", 1500);
+public class RatingNotFoundException extends AbstractNotFoundException {
 
-    String name;
-    int mask;
+    private final String rating;
+    private final String api;
 
-    PortalPermission(String name, int mask) {
-        this.name = name;
-        this.mask = mask;
+    public RatingNotFoundException(String rating) {
+        this.rating = rating;
+        this.api = null;
+    }
+
+    public RatingNotFoundException(String rating, String api) {
+        this.rating = rating;
+        this.api = api;
     }
 
     @Override
-    public String getName() {
-        return name;
+    public String getMessage() {
+        return "Rating [" + rating + "] can not be found" + (api == null ? "":" on the api [" + api + "]");
     }
-
-    @Override
-    public int getMask() {
-        return mask;
-    }
-
 }

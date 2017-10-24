@@ -33,6 +33,8 @@ public enum RolePermission {
     PORTAL_DOCUMENTATION    (RoleScope.PORTAL, PortalPermission.DOCUMENTATION),
     PORTAL_APPLICATION      (RoleScope.PORTAL, PortalPermission.APPLICATION),
     PORTAL_VIEW             (RoleScope.PORTAL, PortalPermission.VIEW),
+    PORTAL_RATING           (RoleScope.PORTAL, PortalPermission.RATING),
+    PORTAL_RATING_ANSWER    (RoleScope.PORTAL, PortalPermission.RATING_ANSWER),
 
     API_DEFINITION          (RoleScope.API, ApiPermission.DEFINITION),
     API_PLAN                (RoleScope.API, ApiPermission.PLAN),
