@@ -24,7 +24,7 @@ import javax.validation.constraints.Size;
 public class NewRatingAnswerEntity {
 
     private String ratingId;
-    @Size(max = 256)
+    @Size(max = 1024)
     private String comment;
 
     public String getRatingId() {

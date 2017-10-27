@@ -13,31 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.management.service;
+package io.gravitee.management.service.exceptions;
 
-import io.gravitee.common.data.domain.Page;
-import io.gravitee.management.model.*;
-import io.gravitee.repository.management.api.search.Pageable;
+import io.gravitee.common.http.HttpStatusCode;
 
 /**
  * @author Azize ELAMRANI (azize at graviteesource.com)
  * @author GraviteeSource Team
  */
-public interface RatingService {
+public class RatingAlreadyExistsException extends AbstractManagementException {
 
-    RatingEntity create(NewRatingEntity rating);
+    private final String api;
+    private final String user;
 
-    RatingEntity createAnswer(NewRatingAnswerEntity answer);
+    public RatingAlreadyExistsException(String api, String user) {
+        this.api = api;
+        this.user = user;
+    }
 
-    Page<RatingEntity> findByApi(String api, Pageable pageable);
+    @Override
+    public String getMessage() {
+        return "Rating already exists for api [" + api + "] and user [" + user + "].";
+    }
 
-    RatingSummaryEntity findSummaryByApi(String api);
-
-    RatingEntity findByApiForConnectedUser(String api);
-
-    RatingEntity update(UpdateRatingEntity rating);
-
-    void delete(String id);
-
-    void deleteAnswer(String ratingId, String answerId);
+    @Override
+    public int getHttpStatusCode() {
+        return HttpStatusCode.BAD_REQUEST_400;
+    }
 }

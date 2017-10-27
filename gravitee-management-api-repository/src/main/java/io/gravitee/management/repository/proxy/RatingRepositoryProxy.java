@@ -22,6 +22,7 @@ import io.gravitee.repository.management.api.search.Pageable;
 import io.gravitee.repository.management.model.Rating;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -39,6 +40,16 @@ public class RatingRepositoryProxy extends AbstractProxy<RatingRepository> imple
     @Override
     public Optional<Rating> findById(String id) throws TechnicalException {
         return target.findById(id);
+    }
+
+    @Override
+    public Optional<Rating> findByApiAndUser(String api, String user) throws TechnicalException {
+        return target.findByApiAndUser(api, user);
+    }
+
+    @Override
+    public List<Rating> findByApi(String api) throws TechnicalException {
+        return target.findByApi(api);
     }
 
     @Override

@@ -17,10 +17,8 @@ package io.gravitee.management.service;
 
 import io.gravitee.common.data.domain.Page;
 import io.gravitee.management.idp.api.authentication.UserDetails;
-import io.gravitee.management.model.NewRatingAnswerEntity;
-import io.gravitee.management.model.NewRatingEntity;
-import io.gravitee.management.model.RatingEntity;
-import io.gravitee.management.model.UpdateRatingEntity;
+import io.gravitee.management.model.*;
+import io.gravitee.management.service.exceptions.RatingAlreadyExistsException;
 import io.gravitee.management.service.exceptions.RatingNotFoundException;
 import io.gravitee.management.service.impl.RatingServiceImpl;
 import io.gravitee.repository.exceptions.TechnicalException;
@@ -46,6 +44,7 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
 
 /**
@@ -71,6 +70,9 @@ public class RatingServiceTest {
     private RatingRepository ratingRepository;
 
     @Mock
+    private UserService userService;
+
+    @Mock
     private NewRatingEntity newRatingEntity;
     @Mock
     private UpdateRatingEntity updateRatingEntity;
@@ -80,6 +82,8 @@ public class RatingServiceTest {
     private Rating rating;
     @Mock
     private RatingAnswer ratingAnswer;
+    @Mock
+    private UserEntity user;
 
     @Before
     public void init() {
@@ -94,10 +98,22 @@ public class RatingServiceTest {
         when(rating.getComment()).thenReturn(COMMENT);
         when(rating.getRate()).thenReturn(RATE);
         when(rating.getUser()).thenReturn(USER);
+
+        when(userService.findByName(USER, false)).thenReturn(user);
+        when(user.getUsername()).thenReturn(USER);
+    }
+
+    @Test(expected = RatingAlreadyExistsException.class)
+    public void shouldNotCreateBecauseAlreadyExists() throws TechnicalException {
+        when(newRatingEntity.getApi()).thenReturn(API_ID);
+        when(ratingRepository.findByApiAndUser(API_ID, USER)).thenReturn(of(rating));
+
+        ratingService.create(newRatingEntity);
     }
 
     @Test
     public void shouldCreate() throws TechnicalException {
+        when(ratingRepository.findByApiAndUser(API_ID, USER)).thenReturn(empty());
         when(ratingRepository.create(any())).thenReturn(rating);
         when(newRatingEntity.getApi()).thenReturn(API_ID);
         when(newRatingEntity.getComment()).thenReturn(COMMENT);
@@ -106,7 +122,7 @@ public class RatingServiceTest {
 
         final RatingEntity ratingEntity = ratingService.create(newRatingEntity);
 
-        assertEquals(USER, ratingEntity.getUser());
+        assertEquals(USER, ratingEntity.getUsername());
         assertEquals(API_ID, ratingEntity.getApi());
         assertEquals(TITLE, ratingEntity.getTitle());
         assertEquals(COMMENT, ratingEntity.getComment());
@@ -144,14 +160,14 @@ public class RatingServiceTest {
 
         final RatingEntity ratingEntity = ratingService.createAnswer(newRatingAnswerEntity);
 
-        assertEquals(USER, ratingEntity.getUser());
+        assertEquals(USER, ratingEntity.getUsername());
         assertEquals(API_ID, ratingEntity.getApi());
         assertEquals(TITLE, ratingEntity.getTitle());
         assertEquals(COMMENT, ratingEntity.getComment());
         assertEquals(RATE, ratingEntity.getRate(), 0);
         assertEquals(ratingEntity.getCreatedAt(), ratingEntity.getUpdatedAt());
         assertEquals(ANSWER, ratingEntity.getAnswers().get(0).getComment());
-        assertEquals(USER, ratingEntity.getAnswers().get(0).getUser());
+        assertEquals(USER, ratingEntity.getAnswers().get(0).getUsername());
         assertNotNull(ratingEntity.getAnswers().get(0).getCreatedAt());
     }
 
@@ -172,7 +188,27 @@ public class RatingServiceTest {
         assertEquals(10, pageRatingEntity.getPageElements());
         assertEquals(100, pageRatingEntity.getTotalElements());
         final RatingEntity ratingEntity = pageRatingEntity.getContent().get(0);
-        assertEquals(USER, ratingEntity.getUser());
+        assertEquals(USER, ratingEntity.getUsername());
+        assertEquals(API_ID, ratingEntity.getApi());
+        assertEquals(TITLE, ratingEntity.getTitle());
+        assertEquals(COMMENT, ratingEntity.getComment());
+        assertEquals(RATE, ratingEntity.getRate(), 0);
+        assertEquals(ratingEntity.getCreatedAt(), ratingEntity.getUpdatedAt());
+    }
+
+    @Test
+    public void shouldNotFindByApiAndUser() throws TechnicalException {
+        when(ratingRepository.findByApiAndUser(API_ID, USER)).thenReturn(empty());
+        assertNull(ratingService.findByApiForConnectedUser(API_ID));
+    }
+
+    @Test
+    public void shouldFindByApiAndUser() throws TechnicalException {
+        when(ratingRepository.findByApiAndUser(API_ID, USER)).thenReturn(of(rating));
+
+        final RatingEntity ratingEntity = ratingService.findByApiForConnectedUser(API_ID);
+
+        assertEquals(USER, ratingEntity.getUsername());
         assertEquals(API_ID, ratingEntity.getApi());
         assertEquals(TITLE, ratingEntity.getTitle());
         assertEquals(COMMENT, ratingEntity.getComment());

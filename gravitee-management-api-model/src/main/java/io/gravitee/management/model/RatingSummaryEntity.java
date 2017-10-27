@@ -15,24 +15,18 @@
  */
 package io.gravitee.management.model;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Size;
+import java.util.Map;
 
 /**
  * @author Azize ELAMRANI (azize at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class NewRatingEntity {
+public class RatingSummaryEntity {
 
     private String api;
-    @Min(1)
-    @Max(5)
-    private byte rate;
-    @Size(max = 64)
-    private String title;
-    @Size(max = 1024)
-    private String comment;
+    private int numberOfRatings;
+    private Double averageRate;
+    private Map<Byte, Long> numberOfRatingsByRate;
 
     public String getApi() {
         return api;
@@ -42,37 +36,37 @@ public class NewRatingEntity {
         this.api = api;
     }
 
-    public byte getRate() {
-        return rate;
+    public int getNumberOfRatings() {
+        return numberOfRatings;
     }
 
-    public void setRate(byte rate) {
-        this.rate = rate;
+    public void setNumberOfRatings(int numberOfRatings) {
+        this.numberOfRatings = numberOfRatings;
     }
 
-    public String getTitle() {
-        return title;
+    public Double getAverageRate() {
+        return averageRate;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setAverageRate(Double averageRate) {
+        this.averageRate = averageRate;
     }
 
-    public String getComment() {
-        return comment;
+    public Map<Byte, Long> getNumberOfRatingsByRate() {
+        return numberOfRatingsByRate;
     }
 
-    public void setComment(String comment) {
-        this.comment = comment;
+    public void setNumberOfRatingsByRate(Map<Byte, Long> numberOfRatingsByRate) {
+        this.numberOfRatingsByRate = numberOfRatingsByRate;
     }
 
     @Override
     public String toString() {
-        return "NewRatingEntity{" +
+        return "RatingSummaryEntity{" +
                 "api='" + api + '\'' +
-                ", rate=" + rate +
-                ", title='" + title + '\'' +
-                ", comment='" + comment + '\'' +
+                ", numberOfRatings=" + numberOfRatings +
+                ", averageRate=" + averageRate +
+                ", numberOfRatingsByRate=" + numberOfRatingsByRate +
                 '}';
     }
 }

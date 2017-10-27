@@ -15,6 +15,8 @@
  */
 package io.gravitee.management.model;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.Size;
 
 /**
@@ -25,8 +27,13 @@ public class UpdateRatingEntity {
 
     private String id;
     private String api;
-    @Size(min = 1, max = 5)
+    @Min(1)
+    @Max(5)
     private byte rate;
+    @Size(max = 64)
+    private String title;
+    @Size(max = 1024)
+    private String comment;
 
     public String getId() {
         return id;
@@ -52,12 +59,30 @@ public class UpdateRatingEntity {
         this.rate = rate;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
     @Override
     public String toString() {
         return "UpdateRatingEntity{" +
                 "id='" + id + '\'' +
                 ", api='" + api + '\'' +
                 ", rate=" + rate +
+                ", title='" + title + '\'' +
+                ", comment='" + comment + '\'' +
                 '}';
     }
 }

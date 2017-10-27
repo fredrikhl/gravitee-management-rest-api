@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,9 @@ import io.gravitee.common.data.domain.Page;
 import io.gravitee.common.utils.UUID;
 import io.gravitee.management.model.*;
 import io.gravitee.management.service.RatingService;
+import io.gravitee.management.service.UserService;
+import io.gravitee.management.service.exceptions.ApiRatingUnavailableException;
+import io.gravitee.management.service.exceptions.RatingAlreadyExistsException;
 import io.gravitee.management.service.exceptions.RatingNotFoundException;
 import io.gravitee.management.service.exceptions.TechnicalManagementException;
 import io.gravitee.repository.exceptions.TechnicalException;
@@ -29,14 +32,15 @@ import io.gravitee.repository.management.model.RatingAnswer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
-import static java.util.stream.Collectors.toList;
+import static java.util.Comparator.comparing;
+import static java.util.Comparator.reverseOrder;
+import static java.util.stream.Collectors.*;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * @author Azize ELAMRANI (azize at graviteesource.com)
@@ -50,9 +54,22 @@ public class RatingServiceImpl extends AbstractService implements RatingService 
     @Autowired
     private RatingRepository ratingRepository;
 
+    @Autowired
+    private UserService userService;
+
+    @Value("${rating.enabled:false}")
+    private boolean enabled;
+
     @Override
     public RatingEntity create(final NewRatingEntity ratingEntity) {
+        if (!enabled) {
+            throw new ApiRatingUnavailableException();
+        }
         try {
+            final Optional<Rating> ratingOptional = ratingRepository.findByApiAndUser(ratingEntity.getApi(), getAuthenticatedUsername());
+            if (ratingOptional.isPresent()) {
+                throw new RatingAlreadyExistsException(ratingEntity.getApi(), getAuthenticatedUsername());
+            }
             return convert(ratingRepository.create(convert(ratingEntity)));
         } catch (TechnicalException ex) {
             LOGGER.error("An error occurred while trying to create rating on api {}", ratingEntity.getApi(), ex);
@@ -66,6 +83,7 @@ public class RatingServiceImpl extends AbstractService implements RatingService 
             final Rating rating = findById(answerEntity.getRatingId());
 
             final RatingAnswer ratingAnswer = new RatingAnswer();
+            ratingAnswer.setId(UUID.toString(UUID.random()));
             ratingAnswer.setUser(getAuthenticatedUsername());
             ratingAnswer.setComment(answerEntity.getComment());
             ratingAnswer.setCreatedAt(new Date());
@@ -97,16 +115,57 @@ public class RatingServiceImpl extends AbstractService implements RatingService 
     }
 
     @Override
+    public RatingSummaryEntity findSummaryByApi(final String api) {
+        try {
+            final List<Rating> ratings = ratingRepository.findByApi(api);
+            final RatingSummaryEntity ratingSummary = new RatingSummaryEntity();
+            ratingSummary.setApi(api);
+            ratingSummary.setNumberOfRatings(ratings.size());
+            final OptionalDouble optionalAvg = ratings.stream().mapToInt(Rating::getRate).average();
+            if (optionalAvg.isPresent()) {
+                ratingSummary.setAverageRate(optionalAvg.getAsDouble());
+            }
+            ratingSummary.setNumberOfRatingsByRate(ratings.stream().collect(groupingBy(Rating::getRate, counting())));
+            return ratingSummary;
+        } catch (TechnicalException ex) {
+            LOGGER.error("An error occurred while trying to find summary rating for api {}", api, ex);
+            throw new TechnicalManagementException("An error occurred while trying to find summary rating for api " + api, ex);
+        }
+    }
+
+    @Override
+    public RatingEntity findByApiForConnectedUser(final String api) {
+        try {
+            final Optional<Rating> ratingOptional = ratingRepository.findByApiAndUser(api, getAuthenticatedUsername());
+            if (ratingOptional.isPresent()) {
+                return convert(ratingOptional.get());
+            }
+            return null;
+        } catch (final TechnicalException ex) {
+            final String message = "An error occurred while trying to find rating for api " + api + " and user " + getAuthenticatedUsername();
+            LOGGER.error(message, ex);
+            throw new TechnicalManagementException(message, ex);
+        }
+    }
+
+    @Override
     public RatingEntity update(final UpdateRatingEntity ratingEntity) {
         try {
             final Rating rating = findById(ratingEntity.getId());
             if (!rating.getApi().equals(ratingEntity.getApi())) {
                 throw new RatingNotFoundException(ratingEntity.getId(), ratingEntity.getApi());
             }
-
-            rating.setRate(ratingEntity.getRate());
             final Date now = new Date();
             rating.setUpdatedAt(now);
+            rating.setRate(ratingEntity.getRate());
+
+            // we can save a title/comment only once
+            if (isBlank(rating.getTitle())) {
+                rating.setTitle(ratingEntity.getTitle());
+            }
+            if (isBlank(rating.getComment())) {
+                rating.setComment(ratingEntity.getComment());
+            }
             return convert(ratingRepository.update(rating));
         } catch (TechnicalException ex) {
             LOGGER.error("An error occurred while trying to update rating {}", ratingEntity.getId(), ex);
@@ -125,7 +184,24 @@ public class RatingServiceImpl extends AbstractService implements RatingService 
         }
     }
 
+    @Override
+    public void deleteAnswer(final String ratingId, final String answerId) {
+        try {
+            final Rating rating = findById(ratingId);
+            if (rating.getAnswers() != null) {
+                rating.getAnswers().removeIf(ratingAnswer -> answerId.equals(ratingAnswer.getId()));
+            }
+            ratingRepository.update(rating);
+        } catch (TechnicalException ex) {
+            LOGGER.error("An error occurs while trying to delete rating answer {}", answerId, ex);
+            throw new TechnicalManagementException("An error occurs while trying to delete rating answer " + answerId, ex);
+        }
+    }
+
     private Rating findById(String id) {
+        if (!enabled) {
+            throw new ApiRatingUnavailableException();
+        }
         try {
             final Optional<Rating> ratingOptional = ratingRepository.findById(id);
             if (!ratingOptional.isPresent()) {
@@ -140,22 +216,34 @@ public class RatingServiceImpl extends AbstractService implements RatingService 
 
     private RatingEntity convert(final Rating rating) {
         final RatingEntity ratingEntity = new RatingEntity();
+
+        final UserEntity user = userService.findByName(rating.getUser(), false);
+        ratingEntity.setUsername(user.getUsername());
+        ratingEntity.setFirstname(user.getFirstname());
+        ratingEntity.setLastname(user.getLastname());
+
         ratingEntity.setId(rating.getId());
         ratingEntity.setApi(rating.getApi());
-        ratingEntity.setUser(rating.getUser());
         ratingEntity.setTitle(rating.getTitle());
         ratingEntity.setComment(rating.getComment());
         ratingEntity.setRate(rating.getRate());
         ratingEntity.setCreatedAt(rating.getCreatedAt());
         ratingEntity.setUpdatedAt(rating.getUpdatedAt());
         if (rating.getAnswers() != null) {
-            ratingEntity.setAnswers(rating.getAnswers().stream().map(ratingAnswer -> {
-                final RatingAnswerEntity ratingAnswerEntity = new RatingAnswerEntity();
-                ratingAnswerEntity.setUser(ratingAnswer.getUser());
-                ratingAnswerEntity.setComment(ratingAnswer.getComment());
-                ratingAnswerEntity.setCreatedAt(ratingAnswer.getCreatedAt());
-                return ratingAnswerEntity;
-            }).collect(toList()));
+            ratingEntity.setAnswers(rating.getAnswers().stream()
+                    .map(ratingAnswer -> {
+                        final RatingAnswerEntity ratingAnswerEntity = new RatingAnswerEntity();
+                        ratingAnswerEntity.setId(ratingAnswer.getId());
+                        final UserEntity userAnswer = userService.findByName(ratingAnswer.getUser(), false);
+                        ratingAnswerEntity.setUsername(userAnswer.getUsername());
+                        ratingAnswerEntity.setFirstname(userAnswer.getFirstname());
+                        ratingAnswerEntity.setLastname(userAnswer.getLastname());
+                        ratingAnswerEntity.setComment(ratingAnswer.getComment());
+                        ratingAnswerEntity.setCreatedAt(ratingAnswer.getCreatedAt());
+                        return ratingAnswerEntity;
+                    })
+                    .sorted(comparing(RatingAnswerEntity::getCreatedAt, reverseOrder()))
+                    .collect(toList()));
         }
         return ratingEntity;
     }

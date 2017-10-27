@@ -374,8 +374,8 @@ public class ApiResource extends AbstractResource {
     }
 
     @Path("ratings")
-    public RatingResource getRatingResource() {
-        return resourceContext.getResource(RatingResource.class);
+    public ApiRatingResource getRatingResource() {
+        return resourceContext.getResource(ApiRatingResource.class);
     }
 
     private void setSynchronizationState(io.gravitee.management.rest.model.ApiEntity apiEntity) {

@@ -27,7 +27,9 @@ public class RatingEntity {
 
     private String id;
     private String api;
-    private String user;
+    private String username;
+    private String firstname;
+    private String lastname;
     private byte rate;
     private String title;
     private String comment;
@@ -51,12 +53,28 @@ public class RatingEntity {
         this.api = api;
     }
 
-    public String getUser() {
-        return user;
+    public String getUsername() {
+        return username;
     }
 
-    public void setUser(String user) {
-        this.user = user;
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getFirstname() {
+        return firstname;
+    }
+
+    public void setFirstname(String firstname) {
+        this.firstname = firstname;
+    }
+
+    public String getLastname() {
+        return lastname;
+    }
+
+    public void setLastname(String lastname) {
+        this.lastname = lastname;
     }
 
     public byte getRate() {
@@ -125,7 +143,9 @@ public class RatingEntity {
         return "RatingEntity{" +
                 "id='" + id + '\'' +
                 ", api='" + api + '\'' +
-                ", user='" + user + '\'' +
+                ", username='" + username + '\'' +
+                ", firstname='" + firstname + '\'' +
+                ", lastname='" + lastname + '\'' +
                 ", rate=" + rate +
                 ", title='" + title + '\'' +
                 ", comment='" + comment + '\'' +

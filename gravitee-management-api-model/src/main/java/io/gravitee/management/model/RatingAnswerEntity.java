@@ -23,16 +23,43 @@ import java.util.Date;
  */
 public class RatingAnswerEntity {
 
-    private String user;
+    private String id;
+    private String username;
+    private String firstname;
+    private String lastname;
     private String comment;
     private Date createdAt;
 
-    public String getUser() {
-        return user;
+    public String getId() {
+        return id;
     }
 
-    public void setUser(String user) {
-        this.user = user;
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getFirstname() {
+        return firstname;
+    }
+
+    public void setFirstname(String firstname) {
+        this.firstname = firstname;
+    }
+
+    public String getLastname() {
+        return lastname;
+    }
+
+    public void setLastname(String lastname) {
+        this.lastname = lastname;
     }
 
     public String getComment() {
@@ -54,7 +81,10 @@ public class RatingAnswerEntity {
     @Override
     public String toString() {
         return "RatingAnswerEntity{" +
-                "user='" + user + '\'' +
+                "id='" + id + '\'' +
+                ", username='" + username + '\'' +
+                ", firstname='" + firstname + '\'' +
+                ", lastname='" + lastname + '\'' +
                 ", comment='" + comment + '\'' +
                 ", createdAt=" + createdAt +
                 '}';

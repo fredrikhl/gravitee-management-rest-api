@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,10 +17,7 @@ package io.gravitee.management.rest.resource;
 
 import io.gravitee.common.data.domain.Page;
 import io.gravitee.common.http.MediaType;
-import io.gravitee.management.model.NewRatingAnswerEntity;
-import io.gravitee.management.model.NewRatingEntity;
-import io.gravitee.management.model.RatingEntity;
-import io.gravitee.management.model.UpdateRatingEntity;
+import io.gravitee.management.model.*;
 import io.gravitee.management.model.permissions.RolePermission;
 import io.gravitee.management.model.permissions.RolePermissionAction;
 import io.gravitee.management.rest.security.Permission;
@@ -39,8 +36,8 @@ import javax.ws.rs.*;
  * @author Azize ELAMRANI (azize at graviteesource.com)
  * @author GraviteeSource Team
  */
-@Api(tags = {"Rating"})
-public class RatingResource extends AbstractResource {
+@Api(tags = {"API", "Rating"})
+public class ApiRatingResource extends AbstractResource {
 
     @Autowired
     private RatingService ratingService;
@@ -54,17 +51,38 @@ public class RatingResource extends AbstractResource {
         return ratingService.findByApi(api, new PageableBuilder().pageNumber(pageNumber).pageSize(pageSize).build());
     }
 
+    @Path("current")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Permissions({
+            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.READ)
+    })
+    public RatingEntity getByApiAndUser(@PathParam("api") String api) {
+        return ratingService.findByApiForConnectedUser(api);
+    }
+
+    @Path("summary")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Permissions({
+            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.READ)
+    })
+    public RatingSummaryEntity getSummaryByApi(@PathParam("api") String api) {
+        return ratingService.findSummaryByApi(api);
+    }
+
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Permissions({
             @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.CREATE)
     })
-    public RatingEntity create(@Valid @NotNull final NewRatingEntity rating) {
+    public RatingEntity create(@PathParam("api") String api, @Valid @NotNull final NewRatingEntity rating) {
+        rating.setApi(api);
         return ratingService.create(rating);
     }
 
-    @Path("{rating}")
+    @Path("{rating}/answers")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -83,8 +101,9 @@ public class RatingResource extends AbstractResource {
     @Permissions({
             @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.UPDATE)
     })
-    public RatingEntity update(@PathParam("rating") String rating, @Valid @NotNull final UpdateRatingEntity ratingEntity) {
+    public RatingEntity update(@PathParam("api") String api, @PathParam("rating") String rating, @Valid @NotNull final UpdateRatingEntity ratingEntity) {
         ratingEntity.setId(rating);
+        ratingEntity.setApi(api);
         return ratingService.update(ratingEntity);
     }
 
@@ -96,5 +115,15 @@ public class RatingResource extends AbstractResource {
     })
     public void delete(@PathParam("rating") String rating) {
         ratingService.delete(rating);
+    }
+
+    @Path("{rating}/answers/{answer}")
+    @DELETE
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Permissions({
+            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.DELETE)
+    })
+    public void delete(@PathParam("rating") String rating, @PathParam("answer") String answer) {
+        ratingService.deleteAnswer(rating, answer);
     }
 }
