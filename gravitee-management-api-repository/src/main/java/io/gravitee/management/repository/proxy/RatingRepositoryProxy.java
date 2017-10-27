@@ -53,8 +53,8 @@ public class RatingRepositoryProxy extends AbstractProxy<RatingRepository> imple
     }
 
     @Override
-    public Page<Rating> findByApi(String api, Pageable pageable) throws TechnicalException {
-        return target.findByApi(api, pageable);
+    public Page<Rating> findByApiPageable(String api, Pageable pageable) throws TechnicalException {
+        return target.findByApiPageable(api, pageable);
     }
 
     @Override

@@ -23,9 +23,7 @@ public enum PortalPermission implements Permission {
     METADATA(     "METADATA",      1000),
     DOCUMENTATION("DOCUMENTATION", 1100),
     APPLICATION(  "APPLICATION",   1200),
-    VIEW(         "VIEW",          1300),
-    RATING(       "RATING",        1400),
-    RATING_ANSWER("RATING_ANSWER", 1500);
+    VIEW(         "VIEW",          1300);
 
     String name;
     int mask;

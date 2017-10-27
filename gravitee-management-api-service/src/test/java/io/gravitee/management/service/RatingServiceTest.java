@@ -38,14 +38,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Date;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 /**
  * @author Azize ELAMRANI (azize at graviteesource.com)
@@ -87,6 +87,8 @@ public class RatingServiceTest {
 
     @Before
     public void init() {
+        setField(ratingService, "enabled", true);
+
         final Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(new UserDetails(USER, "", emptyList()));
         final SecurityContext securityContext = mock(SecurityContext.class);
@@ -180,7 +182,7 @@ public class RatingServiceTest {
         when(pageRating.getTotalElements()).thenReturn(100L);
         when(pageRating.getContent()).thenReturn(singletonList(rating));
 
-        when(ratingRepository.findByApi(API_ID, pageable)).thenReturn(pageRating);
+        when(ratingRepository.findByApiPageable(API_ID, pageable)).thenReturn(pageRating);
 
         final Page<RatingEntity> pageRatingEntity = ratingService.findByApi(API_ID, pageable);
 
@@ -197,13 +199,13 @@ public class RatingServiceTest {
     }
 
     @Test
-    public void shouldNotFindByApiAndUser() throws TechnicalException {
+    public void shouldNotFindByApiForConnectedUser() throws TechnicalException {
         when(ratingRepository.findByApiAndUser(API_ID, USER)).thenReturn(empty());
         assertNull(ratingService.findByApiForConnectedUser(API_ID));
     }
 
     @Test
-    public void shouldFindByApiAndUser() throws TechnicalException {
+    public void shouldFindByApiForConnectedUser() throws TechnicalException {
         when(ratingRepository.findByApiAndUser(API_ID, USER)).thenReturn(of(rating));
 
         final RatingEntity ratingEntity = ratingService.findByApiForConnectedUser(API_ID);
@@ -253,5 +255,32 @@ public class RatingServiceTest {
         when(ratingRepository.findById(RATING_ID)).thenReturn(of(rating));
         ratingService.delete(RATING_ID);
         verify(ratingRepository).delete(RATING_ID);
+    }
+
+    @Test
+    public void shouldFindSummaryByApiWithNoRatings() throws TechnicalException {
+        when(ratingRepository.findByApi(API_ID)).thenReturn(emptyList());
+
+        final RatingSummaryEntity ratingSummary = ratingService.findSummaryByApi(API_ID);
+        assertEquals(API_ID, ratingSummary.getApi());
+        assertEquals(0, ratingSummary.getNumberOfRatings());
+        assertNull(ratingSummary.getAverageRate());
+        assertTrue(ratingSummary.getNumberOfRatingsByRate().isEmpty());
+    }
+
+    @Test
+    public void shouldFindSummaryByApi() throws TechnicalException {
+        final Rating r = new Rating();
+        r.setRate(new Byte("4"));
+
+        when(ratingRepository.findByApi(API_ID)).thenReturn(asList(rating, r));
+
+        final RatingSummaryEntity ratingSummary = ratingService.findSummaryByApi(API_ID);
+        assertEquals(API_ID, ratingSummary.getApi());
+        assertEquals(2, ratingSummary.getNumberOfRatings());
+        assertEquals(3.5, ratingSummary.getAverageRate(), 0);
+        assertFalse(ratingSummary.getNumberOfRatingsByRate().isEmpty());
+        assertEquals(1, ratingSummary.getNumberOfRatingsByRate().get(new Byte("3")), 0);
+        assertEquals(1, ratingSummary.getNumberOfRatingsByRate().get(new Byte("4")), 0);
     }
 }

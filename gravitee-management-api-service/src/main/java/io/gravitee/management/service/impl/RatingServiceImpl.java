@@ -103,7 +103,7 @@ public class RatingServiceImpl extends AbstractService implements RatingService 
     @Override
     public Page<RatingEntity> findByApi(final String api, final Pageable pageable) {
         try {
-            final Page<Rating> pageRating = ratingRepository.findByApi(api, pageable);
+            final Page<Rating> pageRating = ratingRepository.findByApiPageable(api, pageable);
             final List<RatingEntity> ratingEntities =
                     pageRating.getContent().stream().map(this::convert).collect(toList());
             return new Page<>(ratingEntities, pageRating.getPageNumber(),

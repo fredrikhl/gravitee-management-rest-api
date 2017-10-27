@@ -29,8 +29,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.method.P;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.*;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * @author Azize ELAMRANI (azize at graviteesource.com)
@@ -45,27 +50,31 @@ public class ApiRatingResource extends AbstractResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Permissions({
-            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.READ)
+            @Permission(value = RolePermission.API_RATING, acls = RolePermissionAction.READ)
     })
-    public Page<RatingEntity> list(@PathParam("api") String api, @QueryParam("pageNumber") int pageNumber, @QueryParam("pageSize") int pageSize) {
-        return ratingService.findByApi(api, new PageableBuilder().pageNumber(pageNumber).pageSize(pageSize).build());
+    public Page<RatingEntity> list(@PathParam("api") String api, @Min(1) @QueryParam("pageNumber") int pageNumber, @QueryParam("pageSize") int pageSize) {
+        final Page<RatingEntity> ratingEntityPage =
+                ratingService.findByApi(api, new PageableBuilder().pageNumber(pageNumber).pageSize(pageSize).build());
+        final List<RatingEntity> filteredRatings =
+                ratingEntityPage.getContent().stream().map(ratingEntity -> filterPermission(api, ratingEntity)).collect(toList());
+        return new Page<>(filteredRatings, ratingEntityPage.getPageNumber(), (int) ratingEntityPage.getPageElements(), ratingEntityPage.getTotalElements());
     }
 
     @Path("current")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Permissions({
-            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.READ)
+            @Permission(value = RolePermission.API_RATING, acls = RolePermissionAction.READ)
     })
     public RatingEntity getByApiAndUser(@PathParam("api") String api) {
-        return ratingService.findByApiForConnectedUser(api);
+        return filterPermission(api, ratingService.findByApiForConnectedUser(api));
     }
 
     @Path("summary")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Permissions({
-            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.READ)
+            @Permission(value = RolePermission.API_DEFINITION, acls = RolePermissionAction.READ)
     })
     public RatingSummaryEntity getSummaryByApi(@PathParam("api") String api) {
         return ratingService.findSummaryByApi(api);
@@ -75,23 +84,11 @@ public class ApiRatingResource extends AbstractResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Permissions({
-            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.CREATE)
+            @Permission(value = RolePermission.API_RATING, acls = RolePermissionAction.CREATE)
     })
     public RatingEntity create(@PathParam("api") String api, @Valid @NotNull final NewRatingEntity rating) {
         rating.setApi(api);
-        return ratingService.create(rating);
-    }
-
-    @Path("{rating}/answers")
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Permissions({
-            @Permission(value = RolePermission.PORTAL_RATING_ANSWER, acls = RolePermissionAction.CREATE)
-    })
-    public RatingEntity createAnswer(@PathParam("rating") String rating, @Valid @NotNull final NewRatingAnswerEntity answer) {
-        answer.setRatingId(rating);
-        return ratingService.createAnswer(answer);
+        return filterPermission(api, ratingService.create(rating));
     }
 
     @Path("{rating}")
@@ -99,31 +96,50 @@ public class ApiRatingResource extends AbstractResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Permissions({
-            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.UPDATE)
+            @Permission(value = RolePermission.API_RATING, acls = RolePermissionAction.UPDATE)
     })
     public RatingEntity update(@PathParam("api") String api, @PathParam("rating") String rating, @Valid @NotNull final UpdateRatingEntity ratingEntity) {
         ratingEntity.setId(rating);
         ratingEntity.setApi(api);
-        return ratingService.update(ratingEntity);
+        return filterPermission(api, ratingService.update(ratingEntity));
     }
 
     @Path("{rating}")
     @DELETE
     @Consumes(MediaType.APPLICATION_JSON)
     @Permissions({
-            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.DELETE)
+            @Permission(value = RolePermission.API_RATING, acls = RolePermissionAction.DELETE)
     })
     public void delete(@PathParam("rating") String rating) {
         ratingService.delete(rating);
+    }
+
+    @Path("{rating}/answers")
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Permissions({
+            @Permission(value = RolePermission.API_RATING_ANSWER, acls = RolePermissionAction.CREATE)
+    })
+    public RatingEntity createAnswer(@PathParam("api") String api, @PathParam("rating") String rating, @Valid @NotNull final NewRatingAnswerEntity answer) {
+        answer.setRatingId(rating);
+        return filterPermission(api, ratingService.createAnswer(answer));
     }
 
     @Path("{rating}/answers/{answer}")
     @DELETE
     @Consumes(MediaType.APPLICATION_JSON)
     @Permissions({
-            @Permission(value = RolePermission.PORTAL_RATING, acls = RolePermissionAction.DELETE)
+            @Permission(value = RolePermission.API_RATING_ANSWER, acls = RolePermissionAction.DELETE)
     })
     public void delete(@PathParam("rating") String rating, @PathParam("answer") String answer) {
         ratingService.deleteAnswer(rating, answer);
+    }
+
+    private RatingEntity filterPermission(final String api, final RatingEntity ratingEntity) {
+        if (!hasPermission(RolePermission.API_RATING_ANSWER, api, RolePermissionAction.READ)) {
+            ratingEntity.setAnswers(null);
+        }
+        return ratingEntity;
     }
 }
